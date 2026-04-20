@@ -1,0 +1,23 @@
+appId: com.biblebar.app
+productName: VerseID
+copyright: Copyright © 2026 VerseID
+directories:
+  output: dist
+  buildResources: assets
+win:
+  target: nsis
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: VerseID
+files:
+  - "**/*"
+  - "!models/vosk-model-large/**"
+extraResources:
+  - from: assets/bible.db
+    to: assets/bible.db
+  - from: models/
+    to: models/
