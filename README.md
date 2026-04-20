@@ -2,9 +2,12 @@
 
 **VerseID** is a lightweight, real-time Bible verse detection application that resides in your system tray. It uses offline speech-to-text (Vosk) and advanced semantic analysis (Gemini) to identify scripture as you speak.
 
-![Premium UI](https://raw.githubusercontent.com/psycho237-prog/VerseID/master/renderer/index.html) *Note: Replace with actual screenshot for final production*
+![Premium UI](https://raw.githubusercontent.com/psycho237-prog/VerseID/master/renderer/index.html)
+
+[![Build VerseID](https://github.com/psycho237-prog/VerseID/actions/workflows/build.yml/badge.svg)](https://github.com/psycho237-prog/VerseID/actions/workflows/build.yml)
 
 ## ✨ Key Features
+
 
 - 🔌 **Offline-First**: Instant detection using a local SQLite database (~31,000 verses).
 - ☁️ **Gemini Fallback**: Intelligent detection of paraphrases and approximate citations using Google Gemini 2.0.
