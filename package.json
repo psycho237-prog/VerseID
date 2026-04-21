@@ -14,8 +14,7 @@
   "dependencies": {
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
-    "fuse.js": "^7.3.0",
-    "vosk": "^0.3.39"
+    "fuse.js": "^7.3.0"
   },
   "devDependencies": {
     "electron": "^30.0.0",
