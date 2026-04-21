@@ -6,7 +6,7 @@ directories:
   buildResources: assets
 win:
   target: nsis
-  icon: assets/icon.ico
+  icon: assets/icon.png
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
