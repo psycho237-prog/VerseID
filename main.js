@@ -97,9 +97,8 @@ ipcMain.handle('detect-verse', async (event, text) => {
     let result = localDetector.detect(text);
     if (result) return { ...result, mode: 'OFFLINE' };
 
-    // 2. Gemini Fallback
-    const apiKey = process.env.GEMINI_API_KEY;
-    result = await geminiDetector.detect(text, apiKey);
+    // 2. Gemini Fallback (auto key rotation handled internally)
+    result = await geminiDetector.detect(text);
     if (result) return { ...result, mode: 'GEMINI' };
 
     return { found: false };
