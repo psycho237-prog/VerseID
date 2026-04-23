@@ -9,6 +9,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -42,9 +45,59 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      - name: Upload Artifact
+      - name: Upload Artifact (for inspection)
         uses: actions/upload-artifact@v4
         with:
           name: VerseID-Windows-Installer
           path: dist/*.exe
           retention-days: 5
+
+      - name: Get version from package.json
+        id: version
+        shell: bash
+        run: echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Delete existing release and tag (if any)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          gh release delete "v${{ steps.version.outputs.VERSION }}" --yes 2>/dev/null || true
+          git push origin ":refs/tags/v${{ steps.version.outputs.VERSION }}" 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: VerseID v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## VerseID v${{ steps.version.outputs.VERSION }} 🎉
+
+            **Real-time Bible verse detection app for Windows.**
+
+            ### Features
+            - 📖 Offline Bible verse detection using Fuse.js fuzzy matching
+            - 🤖 Gemini AI fallback with automatic key rotation (4 keys)
+            - 🎙️ Vosk-powered offline speech recognition
+            - 🗃️ Local SQLite database for verse lookup & caching
+            - 🔔 System tray integration with always-on-top overlay
+
+            ### Installation
+            1. Download **VerseID Setup ${{ steps.version.outputs.VERSION }}.exe** below
+            2. Run the installer
+            3. VerseID will appear in your system tray
+
+            ### Notes
+            - Requires Windows 10 or later
+            - No internet connection required for basic verse detection
+            - Gemini AI fallback activates automatically when local detection fails
+
+            ---
+            🔨 Built from commit ${{ github.sha }}
+          files: dist/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
