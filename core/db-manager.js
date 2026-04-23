@@ -1,7 +1,27 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
-const dbPath = path.join(__dirname, '../assets/bible.db');
+let dbPath;
+
+if (process.versions && process.versions.electron) {
+    const { app } = require('electron');
+    const userDataPath = app.getPath('userData');
+    dbPath = path.join(userDataPath, 'bible.db');
+    
+    if (!fs.existsSync(dbPath)) {
+        const assetsPath = path.join(__dirname, '../assets/bible.db');
+        try {
+            fs.copyFileSync(assetsPath, dbPath);
+        } catch (err) {
+            console.error('Failed to copy db to userData:', err);
+            dbPath = assetsPath;
+        }
+    }
+} else {
+    dbPath = path.join(__dirname, '../assets/bible.db');
+}
+
 const db = new Database(dbPath);
 
 // Initialisation des tables si elles n'existent pas (pour le cache)
