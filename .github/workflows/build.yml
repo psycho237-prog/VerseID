@@ -30,6 +30,7 @@ jobs:
         run: npm install --ignore-scripts
 
       - name: Fix ffi-napi build issue (Patch ffi-napi)
+        shell: bash
         run: |
           cat << 'EOF' > patch-ffi.js
           const fs = require('fs');
