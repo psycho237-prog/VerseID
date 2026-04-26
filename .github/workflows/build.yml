@@ -41,9 +41,11 @@ jobs:
           paths.forEach(p => {
             if (fs.existsSync(p)) {
               let c = fs.readFileSync(p, 'utf8');
-              c = c.replace(/"call" "call"/g, '"call"');
-              c = c.replace(/'call', /g, '');
-              c = c.replace(/"call", /g, '');
+              // Remove the problematic nested "call" commands
+              c = c.replace(/call\s+"call"\s+/g, 'call ');
+              c = c.replace(/"call"\s+"call"\s+/g, '');
+              // Clean up any remaining malformed call statements
+              c = c.replace(/call\s+call\s+/g, 'call ');
               fs.writeFileSync(p, c);
               console.log('Patched ' + p);
             }
