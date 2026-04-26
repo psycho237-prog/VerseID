@@ -7,21 +7,43 @@ let dbPath;
 if (process.versions && process.versions.electron) {
     const { app } = require('electron');
     const userDataPath = app.getPath('userData');
+    
+    // Ensure userData directory exists before copying
+    if (!fs.existsSync(userDataPath)) {
+        fs.mkdirSync(userDataPath, { recursive: true });
+    }
+    
     dbPath = path.join(userDataPath, 'bible.db');
     
     if (!fs.existsSync(dbPath)) {
-        const assetsPath = path.join(__dirname, '../assets/bible.db');
+        // In production, assets are in process.resourcesPath/assets
+        // In development, they are in __dirname/../assets
+        const assetsPath = app.isPackaged
+            ? path.join(process.resourcesPath, 'assets/bible.db')
+            : path.join(__dirname, '../assets/bible.db');
+            
         try {
-            fs.copyFileSync(assetsPath, dbPath);
+            if (fs.existsSync(assetsPath)) {
+                fs.copyFileSync(assetsPath, dbPath);
+            } else {
+                console.error(`Source database not found at: ${assetsPath}`);
+                // Fallback to internal path if extraResource failed
+                const fallbackPath = path.join(__dirname, '../assets/bible.db');
+                if (fs.existsSync(fallbackPath) && fallbackPath !== assetsPath) {
+                    fs.copyFileSync(fallbackPath, dbPath);
+                }
+            }
         } catch (err) {
             console.error('Failed to copy db to userData:', err);
-            dbPath = assetsPath;
         }
     }
 } else {
+    // For non-electron environments (e.g. tests)
     dbPath = path.join(__dirname, '../assets/bible.db');
 }
 
+// better-sqlite3 cannot open files inside an .asar archive.
+// The database MUST be on a real filesystem.
 const db = new Database(dbPath);
 
 // Initialisation des tables si elles n'existent pas (pour le cache)
@@ -39,8 +61,6 @@ db.exec(`
 module.exports = {
     db,
     getVerse: (text) => {
-        // Cette fonction sera utilisée par le local-detector avec Fuse.js
-        // Mais on peut aussi faire des requêtes directes ici
         return db.prepare('SELECT * FROM verses WHERE text LIKE ?').get(`%${text}%`);
     },
     saveToCache: (hash, ref) => {
@@ -51,6 +71,11 @@ module.exports = {
         return db.prepare('SELECT * FROM cache WHERE query_hash = ?').get(hash);
     },
     getAllVerses: () => {
-        return db.prepare('SELECT book, chapter, verse, text, version FROM verses').all();
+        try {
+            return db.prepare('SELECT book, chapter, verse, text, version FROM verses').all();
+        } catch (err) {
+            console.error("Error fetching all verses:", err);
+            return [];
+        }
     }
 };
