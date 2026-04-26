@@ -32,19 +32,26 @@ jobs:
       - name: Fix ffi-napi build issue (Patch ffi-napi)
         shell: bash
         run: |
+          # Try to generate build files if they don't exist
+          cd node_modules/ffi-napi && npx node-gyp configure || true
+          cd ../..
+
           cat << 'EOF' > patch-ffi.js
           const fs = require('fs');
           const paths = [
             'node_modules/ffi-napi/deps/libffi/libffi.gyp',
-            'node_modules/ffi-napi/build/deps/libffi/ffi.targets'
+            'node_modules/ffi-napi/build/deps/libffi/ffi.targets',
+            'node_modules/ffi-napi/build/deps/libffi/ffi.vcxproj'
           ];
           paths.forEach(p => {
             if (fs.existsSync(p)) {
               let c = fs.readFileSync(p, 'utf8');
-              // Remove the problematic nested "call" commands
+              // For .gyp files (array elements)
+              c = c.replace(/'call', /g, '');
+              c = c.replace(/"call", /g, '');
+              // For .targets / .vcxproj (command strings)
               c = c.replace(/call\s+"call"\s+/g, 'call ');
-              c = c.replace(/"call"\s+"call"\s+/g, '');
-              // Clean up any remaining malformed call statements
+              c = c.replace(/"call"\s+"call"\s+/g, ' ');
               c = c.replace(/call\s+call\s+/g, 'call ');
               fs.writeFileSync(p, c);
               console.log('Patched ' + p);
