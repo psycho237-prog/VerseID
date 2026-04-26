@@ -1,6 +1,6 @@
 {
   "name": "verseid",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "@electron/rebuild": "^3.6.0"
+    "electron-builder": "^26.9.0",
+    "@electron/rebuild": "^3.7.1"
   }
 }

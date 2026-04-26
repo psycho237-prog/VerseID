@@ -23,24 +23,28 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm install --ignore-scripts
 
-      - name: Fix ffi-napi build issue (Patch call "call" bug)
+      - name: Fix ffi-napi build issue (Patch libffi.gyp)
         shell: pwsh
         run: |
-          $file = "node_modules/ffi-napi/build/deps/libffi/ffi.targets"
+          $file = "node_modules/ffi-napi/deps/libffi/libffi.gyp"
           if (Test-Path $file) {
-            (Get-Content $file) -replace 'call "call"', 'call' | Set-Content $file
-            Write-Host "Patched ffi.targets successfully."
+            $content = Get-Content $file
+            $content = $content -replace "'call', 'preprocess_asm.cmd'", "'preprocess_asm.cmd'"
+            $content = $content -replace '"call", "preprocess_asm.cmd"', '"preprocess_asm.cmd"'
+            $content | Set-Content $file
+            Write-Host "Patched libffi.gyp successfully."
           } else {
-            Write-Host "ffi.targets not found, skipping patch."
+            Write-Host "libffi.gyp not found, skipping patch."
           }
 
       - name: Create .env file from secrets
+        shell: bash
         run: |
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
           echo "GEMINI_API_KEY_2=${{ secrets.GEMINI_API_KEY_2 }}" >> .env
@@ -48,7 +52,7 @@ jobs:
           echo "GEMINI_API_KEY_4=${{ secrets.GEMINI_API_KEY_4 }}" >> .env
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild -f -w better-sqlite3,vosk
+        run: npx @electron/rebuild -f
 
       - name: Build Windows Executable
         run: npm run build

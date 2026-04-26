@@ -1,4 +1,4 @@
-const { app, BrowserWindow, tray, Menu, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -43,7 +43,7 @@ function createWindow() {
 function createTray() {
     // Note: Utiliser un icone valide. En Linux, on peut utiliser un PNG.
     // Pour cet environnement, je placeholderai avec un icone standard.
-    mainTray = new tray(path.join(__dirname, 'assets/icon.png')); 
+    mainTray = new Tray(path.join(__dirname, 'assets/icon.png')); 
     
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Activer / Désactiver', click: () => toggleWindow() },
