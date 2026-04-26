@@ -23,11 +23,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Create .env file from secrets
         run: |
@@ -37,7 +37,7 @@ jobs:
           echo "GEMINI_API_KEY_4=${{ secrets.GEMINI_API_KEY_4 }}" >> .env
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild
+        run: npx electron-rebuild -f -w better-sqlite3,vosk
 
       - name: Build Windows Executable
         run: npm run build
