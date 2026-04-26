@@ -1,15 +1,28 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// Global error handling to catch startup crashes
+process.on('uncaughtException', (error) => {
+    const logPath = path.join(app.getPath('userData'), 'error.log');
+    fs.appendFileSync(logPath, `[${new Date().toISOString()}] Uncaught Exception: ${error.stack}\n`);
+    dialog.showErrorBox('Startup Error', `The application failed to start:\n${error.message}\n\nLogs saved to: ${logPath}`);
+    app.quit();
+});
+
 // Core Modules
-const localDetector = require('./core/local-detector');
-const geminiDetector = require('./core/gemini-detector');
-const dbManager = require('./core/db-manager');
+let localDetector, geminiDetector, dbManager;
+try {
+    localDetector = require('./core/local-detector');
+    geminiDetector = require('./core/gemini-detector');
+    dbManager = require('./core/db-manager');
+} catch (err) {
+    dialog.showErrorBox('Module Load Error', `Failed to load core modules:\n${err.message}`);
+    process.exit(1);
+}
 
 let mainWindow;
-
 let mainTray;
 
 function createWindow() {
@@ -21,6 +34,7 @@ function createWindow() {
         resizable: false,
         transparent: true,
         alwaysOnTop: true,
+        skipTaskbar: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -34,32 +48,42 @@ function createWindow() {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     mainWindow.setPosition(width - 390, height - 150);
 
-    mainWindow.on('blur', () => {
-        // Optionnel: cacher si clic ailleurs
-        // mainWindow.hide();
+    mainWindow.once('ready-to-show', () => {
+        // Automatically show on first run to confirm it works
+        mainWindow.show();
+        // Optionnel: masquer après quelques secondes
+        // setTimeout(() => mainWindow.hide(), 5000);
     });
 }
 
 function createTray() {
-    // Note: Utiliser un icone valide. En Linux, on peut utiliser un PNG.
-    // Pour cet environnement, je placeholderai avec un icone standard.
-    mainTray = new Tray(path.join(__dirname, 'assets/icon.png')); 
-    
-    const contextMenu = Menu.buildFromTemplate([
-        { label: 'Activer / Désactiver', click: () => toggleWindow() },
-        { type: 'separator' },
-        { label: 'Historique', click: () => {} },
-        { label: 'Paramètres', click: () => {} },
-        { type: 'separator' },
-        { label: 'Quitter', click: () => app.quit() }
-    ]);
+    try {
+        const iconPath = path.join(__dirname, 'assets/icon.png');
+        if (!fs.existsSync(iconPath)) {
+            console.error('Tray icon not found at:', iconPath);
+        }
+        mainTray = new Tray(iconPath); 
+        
+        const contextMenu = Menu.buildFromTemplate([
+            { label: 'VerseID - BibleBar', enabled: false },
+            { type: 'separator' },
+            { label: 'Afficher / Masquer', click: () => toggleWindow() },
+            { type: 'separator' },
+            { label: 'Historique', click: () => {} },
+            { label: 'Paramètres', click: () => {} },
+            { type: 'separator' },
+            { label: 'Quitter', click: () => app.quit() }
+        ]);
 
-    mainTray.setToolTip('VerseID - BibleBar');
-    mainTray.setContextMenu(contextMenu);
+        mainTray.setToolTip('VerseID - BibleBar');
+        mainTray.setContextMenu(contextMenu);
 
-    mainTray.on('click', () => {
-        toggleWindow();
-    });
+        mainTray.on('click', () => {
+            toggleWindow();
+        });
+    } catch (err) {
+        console.error('Failed to create tray:', err);
+    }
 }
 
 function toggleWindow() {
@@ -71,12 +95,6 @@ function toggleWindow() {
 }
 
 app.whenReady().then(() => {
-    // Créer un icone minimaliste si manquant pour éviter crash
-    const fs = require('fs');
-    if (!fs.existsSync(path.join(__dirname, 'assets/icon.png'))) {
-        // En prod, l'icone doit exister
-    }
-
     createWindow();
     createTray();
 
@@ -93,31 +111,34 @@ app.on('window-all-closed', function () {
 ipcMain.handle('get-api-key', () => process.env.GEMINI_API_KEY);
 
 ipcMain.handle('detect-verse', async (event, text) => {
-    // 1. Local Detection
-    let result = localDetector.detect(text);
-    if (result) return { ...result, mode: 'OFFLINE' };
+    try {
+        // 1. Local Detection
+        let result = localDetector.detect(text);
+        if (result) return { ...result, mode: 'OFFLINE' };
 
-    // 2. Gemini Fallback (auto key rotation handled internally)
-    result = await geminiDetector.detect(text);
-    if (result) return { ...result, mode: 'GEMINI' };
+        // 2. Gemini Fallback
+        result = await geminiDetector.detect(text);
+        if (result) return { ...result, mode: 'GEMINI' };
 
-    return { found: false };
+        return { found: false };
+    } catch (err) {
+        console.error('Detection error:', err);
+        return { found: false, error: err.message };
+    }
 });
 
 ipcMain.on('set-tray-icon', (event, active) => {
     if (mainTray) {
         const iconPath = active ? 'assets/icon-active.png' : 'assets/icon.png';
-        if (fs.existsSync(path.join(__dirname, iconPath))) {
-            mainTray.setImage(path.join(__dirname, iconPath));
+        const fullPath = path.join(__dirname, iconPath);
+        if (fs.existsSync(fullPath)) {
+            mainTray.setImage(fullPath);
         }
     }
-});
-
-ipcMain.on('notify', (event, data) => {
-    // Logic for notifications
 });
 
 ipcMain.on('close-app', () => {
     app.quit();
 });
+
 
