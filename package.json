@@ -1,6 +1,6 @@
 {
   "name": "verseid",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -15,7 +15,7 @@
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
     "fuse.js": "^7.3.0",
-    "vosk": "^0.3.39"
+    "vosk-koffi": "^0.3.39"
   },
   "devDependencies": {
     "electron": "^30.0.0",

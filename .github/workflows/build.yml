@@ -29,30 +29,7 @@ jobs:
       - name: Install Dependencies
         run: npm install --ignore-scripts
 
-      - name: Fix ffi-napi build issue (Patch ffi-napi)
-        shell: bash
-        run: |
-          cat << 'EOF' > patch-ffi.js
-          const fs = require('fs');
-          const paths = [
-            'node_modules/ffi-napi/deps/libffi/libffi.gyp',
-            'node_modules/ffi-napi/build/deps/libffi/ffi.targets',
-            'node_modules/ffi-napi/build/deps/libffi/ffi.vcxproj'
-          ];
-          paths.forEach(p => {
-            if (fs.existsSync(p)) {
-              let c = fs.readFileSync(p, 'utf8');
-              // Aggressive replacement for 'call' as an array element or command string
-              c = c.replace(/['"]call['"],\s*/g, '');
-              c = c.replace(/call\s+"call"\s+/g, 'call ');
-              c = c.replace(/"call"\s+"call"\s+/g, ' ');
-              c = c.replace(/call\s+call\s+/g, 'call ');
-              fs.writeFileSync(p, c);
-              console.log('Patched ' + p);
-            }
-          });
-          EOF
-          node patch-ffi.js
+
 
       - name: Create .env file from secrets
         shell: bash
