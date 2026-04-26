@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Dependencies
@@ -31,7 +31,24 @@ jobs:
 
       - name: Fix ffi-napi build issue (Patch ffi-napi)
         run: |
-          node -e "const fs = require('fs'); const paths = ['node_modules/ffi-napi/deps/libffi/libffi.gyp', 'node_modules/ffi-napi/build/deps/libffi/ffi.targets']; paths.forEach(p => { if (fs.existsSync(p)) { let c = fs.readFileSync(p, 'utf8'); c = c.replace(/\"call\" \"call\"/g, '\"call\"'); c = c.replace(/'call', /g, ''); c = c.replace(/\"call\", /g, ''); fs.writeFileSync(p, c); console.log('Patched ' + p); } });"
+          cat << 'EOF' > patch-ffi.js
+          const fs = require('fs');
+          const paths = [
+            'node_modules/ffi-napi/deps/libffi/libffi.gyp',
+            'node_modules/ffi-napi/build/deps/libffi/ffi.targets'
+          ];
+          paths.forEach(p => {
+            if (fs.existsSync(p)) {
+              let c = fs.readFileSync(p, 'utf8');
+              c = c.replace(/"call" "call"/g, '"call"');
+              c = c.replace(/'call', /g, '');
+              c = c.replace(/"call", /g, '');
+              fs.writeFileSync(p, c);
+              console.log('Patched ' + p);
+            }
+          });
+          EOF
+          node patch-ffi.js
 
       - name: Create .env file from secrets
         shell: bash
