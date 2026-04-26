@@ -32,10 +32,6 @@ jobs:
       - name: Fix ffi-napi build issue (Patch ffi-napi)
         shell: bash
         run: |
-          # Try to generate build files if they don't exist
-          cd node_modules/ffi-napi && npx node-gyp configure || true
-          cd ../..
-
           cat << 'EOF' > patch-ffi.js
           const fs = require('fs');
           const paths = [
@@ -46,10 +42,8 @@ jobs:
           paths.forEach(p => {
             if (fs.existsSync(p)) {
               let c = fs.readFileSync(p, 'utf8');
-              // For .gyp files (array elements)
-              c = c.replace(/'call', /g, '');
-              c = c.replace(/"call", /g, '');
-              // For .targets / .vcxproj (command strings)
+              // Aggressive replacement for 'call' as an array element or command string
+              c = c.replace(/['"]call['"],\s*/g, '');
               c = c.replace(/call\s+"call"\s+/g, 'call ');
               c = c.replace(/"call"\s+"call"\s+/g, ' ');
               c = c.replace(/call\s+call\s+/g, 'call ');
